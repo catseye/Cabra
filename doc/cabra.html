@@ -1,0 +1,415 @@
+<html>
+<head>
+<title>The Cabra Programming Language</title>
+</head>
+<body>
+
+<h1>Cabra</h1>
+
+<p>November 2007, Chris Pressey, Cat's Eye Technologies</p>
+
+<h2>Introduction</h2>
+
+<p>Cabra is a formal programming language whose programs form a dioid (an idempotent semiring)
+over its semantic equivalence relation under the operations of parallel composition (additive)
+and sequential composition (multiplicative.)  (Say <em>that</em> five times fast!)</p>
+
+<p>Cabra is the successor to <a href="/projects/burro/">Burro</a>, a programming language
+whose programs form a simpler algebraic structure: a group.
+Unlike Burro, however, Cabra is not derived from Brainfuck in any way.
+And, while the word "burro" is Spanish for "donkey", the word "cabra" is Spanish for "goat."
+(Also, in reality, you'd be hard-pressed to do any actual
+<em>programming</em> in Cabra... but it <em>is</em> a formal language.)</p>
+
+<p>Reading the Burro documentation is definately recommended for getting the most out of Cabra,
+as several of the same issues are dealt with there.  Notably, the notion of a <em>group over an equivalence
+relation</em> is introduced there in order to make sense of how program texts (syntax) can be manipulated in
+tandem with the programs (semantics) they represent.  In short, many different program texts are equivalent to
+the same (abstract) program, so the equality operator = used in the group axioms is simply replaced
+by the equivalence operator, &equiv;.  Obviously, this technique isn't restricted to groups, and the idea can be
+extended to that of any <em>algebra over an equivalence relation</em>, and it is this notion that
+is applied in Cabra to dioids.
+
+<p>The original intent of Cabra was to devise a language whose programs formed a <em>ring</em>
+under parallel and sequential composition operations.  Selecting a semantics for parallel composition that
+fulfill all the ring axioms presents a number of problems, which are discussed below.  
+As a compromise, the axioms for <em>idempotent semirings</em> were chosen instead.
+Idempotent semirings, sometimes called <em>dioids</em>, lack the additive inverses that rings have,
+but unlike rings, have an idempotent additive operator.</p>
+
+<p>Let's get straight to it.</p>
+
+<h2>Language Definition</h2>
+
+<p>Every Cabra program takes, as input, an <em>input set</em>, which is a set of non-negative integers.
+Every Cabra program either produces an <em>output set</em>, which is also a set of non-negative integers,
+or it fails to terminate.</p>
+
+<p>A Cabra program is defined inductively as follows.</p>
+
+<p>The instruction <code>SET <var>n</var></code>, where <var>n</var> is any non-negative integer,
+is a Cabra program.  The output set of this program is the union of
+the input set and the singleton set {<var>n</var>}.  (The output set is just like the input set
+except that it also includes <var>n</var> if it was missing from the input set.)</p>
+
+<p>The instruction <code>UNSET <var>n</var></code>, where <var>n</var> is any non-negative integer,
+is a Cabra program.  The output set of this program is the set difference of the input set and
+the singleton set {<var>n</var>}.  (The output set is just like the input set
+except that it never includes <var>n</var>, even if <var>n</var> was included in the input set.)</p>
+
+<p>If <var>a</var> and <var>b</var> are Cabra programs, then <code>IFSET <var>n</var> THEN <var>a</var> ELSE <var>b</var></code>
+is a Cabra program, where <var>n</var> is any non-negative integer.  If <var>n</var> is a member of the input set of the <code>IFSET</code> program,
+then the input set is used as the input set of <var>a</var>, and the output set of <var>a</var> is used as the output set of the <code>IFSET</code>;
+<var>b</var> is ignored.  Conversely, if <var>n</var> is not a member of the input set the <code>IFSET</code>,
+then the input set is used as the input set of <var>b</var>, and the output set of <var>b</var> is used as the output set of the <code>IFSET</code>;
+<var>b</var> is ignored.  (<code>IFSET</code> is the conditional statement form.)</p>
+
+<p>If <var>a</var> and <var>b</var> are Cabra programs, then <code><var>a</var>*<var>b</var></code>
+is a Cabra program.  The input set of <code><var>a</var>*<var>b</var></code> is used as the input set of <var>a</var>.
+The output set of <var>a</var> is used as the input set of <var>b</var>. The output set of <var>b</var> is used
+as the output set of <code><var>a</var>*<var>b</var></code>.  (This is sequential composition; <var>a</var> is
+executed, then <var>b</var>.  A more usual notation might be <code><var>a</var>;<var>b</var></code>.)</p>
+
+<p>If <var>a</var> and <var>b</var> are Cabra programs, then <code><var>a</var>+<var>b</var></code>
+is a Cabra program.  The input set of <code><var>a</var>+<var>b</var></code> is used as the input set of
+both <var>a</var> and <var>b</var>.  The output set of whichever of <var>a</var> or <var>b</var>
+terminates first is used as the output set of <code><var>a</var>+<var>b</var></code>.  See below for the
+definition of "terminates first."  (This is parallel composition, with
+final result determined by a kind of race condition.  A more usual notation might be <var>a</var>||<var>b</var>.)</p>
+
+<p>If <var>a</var> is a Cabra program, then <code>(<var>a</var>)</code> is a Cabra program.
+This is just the usual usage of parentheses to alter precedence. Without parentheses,
+<code>*</code> has a higher precedence than <code>+</code>, which has a higher
+precedence than <code>IFSET</code>.  For example, this means that
+<code>IFSET 42 THEN SET 51 ELSE SET 5 * SET 6 + SET 7</code>
+is parsed as <code>IFSET 42 THEN (SET 51) ELSE ((SET 5 * SET 6) + SET 7)</code>.</p>
+
+<p>The instruction <code>SKIP</code> is a Cabra program.  The output set of <code>SKIP</code>
+always equals the input set.  (<code>SKIP</code> is a no-op.)</p>
+
+<p>The instruction <code>BOTTOM</code> is a Cabra program.  Regardless of the input set,
+this program always fails to terminate. (<code>BOTTOM</code> is an infinite loop.)</p>
+
+<p>Were I a pedantic mathematician, here's where I'd mention how nothing else is a Cabra program.
+As if I could be <em>so</em> sure about that.</p>
+
+<h3>Terminates First</h3>
+
+<p>We still need to define what it means for one Cabra program to "terminate before" another, different Cabra program.
+Execution of a Cabra program is considered to take a non-negative integral number of imaginary things
+called <em>cycles</em>.  A Cabra program <var>a</var> terminates before <var>b</var> if the number of cycles taken by <var>a</var>
+on some input set <var>S</var> is less
+than the number of cycles taken by <var>b</var> on <var>S</var>; or, if the number of cycles taken by <var>a</var> on <var>S</var> is the same as the number
+of cycles taken by <var>b</var> on <var>S</var>, then <var>a</var> terminates before <var>b</var> if <var>a</var> has a smaller lexical order than <var>b</var>.
+(If <var>a</var> and <var>b</var> have the same lexical order
+then <var>a</var> = <var>b</var> and "terminate before" is meaningless because it only defined between
+two different Cabra programs.)</p>
+
+<p>The formula for calculating cycles taken in general depends on both the program and its input set, but is deterministic
+in the sense that the same program on the same input set will always take the same number of cycles.
+(This isn't the real world where clock speeds vary at +/-0.01% or anything like that.  It is as if execution is
+synchronous; as if, for example, on a single computer,
+one cycle of program <var>a</var> is executed, then one cycle of <var>b</var>, and so forth, until one or the other
+terminates.)</p>
+
+<ul>
+<li><code>SKIP</code> takes 0 cycles.</li>
+<li><code>BOTTOM</code> takes an infinite number of cycles.</li>
+<li><code><var>a</var>*<var>b</var></code> takes the sum of the number of cycles taken by <var>a</var> and the number of cycles taken by <var>b</var>.</li>
+<li><code><var>a</var>+<var>b</var></code> takes the either the number of cycles taken by <var>a</var> or the number of cycles taken by <var>b</var>, whichever is fewer.</li>
+<li><code>IFSET <var>n</var> THEN <var>a</var> ELSE <var>b</var></code> takes either the number of cycles taken by <var>a</var> or the number of cycles taken by <var>b</var>,
+whichever was selected for execution.</li>
+<li><code>SET <var>n</var></code> takes <var>n</var> cycles if <var>n</var> was not already set, but only 1 cycle if it was already set.</li>
+<li><code>UNSET <var>n</var></code> always takes 1 cycle.</li>
+</ul>
+
+<p>In fact, other formulae are possible.  The somewhat unusual determination of cycles in the case of <code>SET <var>n</var></code>
+is mainly to keep things interesting by ensuring that the number of cycles is dependent upon the contents of the input set.</p>
+
+<p>Probably goes without saying, but to state it anyway: for a program <var>a</var> which is an element of a set of programs <var>P</var>,
+we say <var>a</var> <em>terminates first</em> (with respect to <var>P</var>) if it terminates before every other program in <var>P</var>.</p>
+
+<h3>Lexical Order</h3>
+
+<p>The formula for calculating lexical order depends only on the program.  It acts as a "tiebreaker" when two programs take the same number of cycles.</p>
+
+<p>For primitive programs: <code>SKIP</code> comes before <code>UNSET 0</code>
+which comes before <code>UNSET 1</code> which comes before <code>UNSET 2</code>, etc.
+All of these come before <code>SET 0</code>, which comes before <code>SET 1</code>, etc.
+And all of these come before <code>BOTTOM</code>.</p>
+
+<p>For compound programs, the ordering is <code>IFSET <var>n</var> THEN <var>a</var> ELSE <var>b</var></code>
+comes before <code>IFSET <var>n+1</var> THEN <var>a</var> ELSE <var>b</var></code>
+comes before <code><var>a</var>+<var>b</var></code> comes before <code><var>a</var>*<var>b</var></code>.</p>
+
+<p>All primitive programs come before non-primitive programs, and in general, programs with shorter length
+(measured in terms of number of subterms) come before those with longer length.  In programs with the same
+length, subterms are compared left-to-right.  (This happens to be the same kind of lexical ordering as you
+get in Haskell when you declare a data type as <code>deriving (Ord)</code>.)</p>
+
+<h3>Comments</h3>
+
+<p>Oh, but I can hear you objecting now: <em>Waitaminnit!  This language is totally weak.  You can't do hardly anything with it.</em></p>
+
+<p>True enough.  Cabra is nowhere close to being a real programming language.  But I decided to design it this way anyway,
+for a couple of reasons.</p>
+
+<p>One reason is to demonstrate that these algebraical problems involving parallel composition occur even for what would be
+very small subsets of a "real" programming language.  You can imagine a full-fledged version of Cabra with
+variables, arrays, <code>WHILE</code> loops, input/output, and the like, but you can readily see that these ameliorations don't make the central
+problems any easier.</p>
+
+<p>Another reason is that Cabra, despite almost being, say, just a kind of algebraical structure, <em>looks</em> a lot
+like the beginnings of a programming language.  It's got a conditional form, and imperative update.  It almost looks like an overspecified language &mdash;
+heck, a <em>machine</em> &mdash; because of the definition of how parallel composition works in terms of cycles and everything.</p>
+
+<p>A third reason is that it's just a little... askew.  Note that if we had a <code>WHILE</code> instruction,
+we wouldn't need a <code>BOTTOM</code> instruction
+because we could just do something like <code>WHILE FALSE SKIP</code>.  But we don't have <code>WHILE</code>.
+Yet it is still possible for a Cabra program to hang.
+This is, in my opinion, pretty weird: here's this very weak language, yet it's still capable of somewhat unpleasant things
+which are usually only associated with powerful models of computation like Turing-machines...</p>
+
+<p>And lastly I did it to irk people who think that the goal of esolang design is to make a language that
+is Turing-complete.  Give me an interesting weak language over a boring Turing-complete language anyday.</p>
+
+<h2>Dioid Theory</h2>
+
+<p>Now, recall &mdash; or go look up in an abstract algebra textbook &mdash; or just take my word for it &mdash; that
+an idempotent semiring is a triple &lang;<var>S</var>, +, *&rang; where:</p>
+
+<ul>
+<li><var>S</var> is a set of elements;</li>
+<li>  + : <var>S</var> &times; <var>S</var> &rarr; <var>S</var> is a binary operation on <var>S</var>; and</li>
+<li> * : <var>S</var> &times; <var>S</var> &rarr; <var>S</var> is another binary operation on <var>S</var>,</li>
+</ul>
+<p>where the following axioms of dioid theory (over an equivalence relation!) hold:</p>
+
+<ul>
+<li> (<var>a</var> + <var>b</var>) + <var>c</var> &equiv; <var>a</var> + (<var>b</var> + <var>c</var>)    (addition is associative)</li>
+<li>       <var>a</var> + <var>b</var> &equiv; <var>b</var> + <var>a</var>          (addition is commutative)</li>
+ <li>      <var>a</var> + 0 &equiv; 0 + <var>a</var> &equiv; <var>a</var>              (existence of additive identity)</li>
+ <li>      <var>a</var> + <var>a</var> &equiv; <var>a</var>              (addition is idempotent)</li>
+ <li> (<var>a</var> * <var>b</var>) * <var>c</var> &equiv; <var>a</var> * (<var>b</var> * <var>c</var>)    (multiplication is associative)</li>
+<li><var>a</var> * 1 &equiv; 1 * <var>a</var> &equiv; <var>a</var>      (existence of multiplicative identity)</li>
+<li><var>a</var> * (<var>b</var> + <var>c</var>) &equiv; (<var>a</var> * <var>b</var>) + (<var>a</var> * <var>c</var>)  (multiplication left-distributes over addition)</li>
+<li>(<var>a</var> + <var>b</var>) * <var>c</var> &equiv; (<var>a</var> * <var>c</var>) + (<var>b</var> * <var>c</var>)  (multiplication right-distributes over addition)</li>
+<li><var>a</var> * 0 &equiv; 0 * <var>a</var> &equiv; 0           (additive identity is multiplicative annihiliator)</li>
+</ul>
+
+<p>Now I'll attempt to show that Cabra programs form an idempotent semiring, over the equivalence relation of "semantically identical", under the
+Cabra operations <code>+</code>,
+considered additive, and <code>*</code>, considered multiplicative.  For each axiom, I'll argue informally that it holds for all Cabra programs, hoping that an appeal to your intuition will be sufficient to
+convince you.  A formal proof is also possible I'm sure, but it would be tedious, and probably not really illuminating.</p>
+
+<p>Parallel composition is associative.  The result of
+<code>(<var>a</var>+<var>b</var>)+<var>c</var></code>
+never differs from the result of
+<code><var>a</var>+(<var>b</var>+<var>c</var>)</code>,
+because all of <var>a</var>, <var>b</var>, and <var>c</var>
+are working on the same input set, and whichever one finishes first, finishes first;
+this is completely independent of the order in which they are considered to have been organized into a parallel arrangement.</p>
+
+<p>Parallel composition is commutative.  When running programs in parallel, one would naturally expect that the order of the programs
+doesn't matter &mdash; in fact, the concept doesn't really make sense.  In <code><var>a</var>+<var>b</var></code>, <var>a</var> and <var>b</var> aren't
+really running in any order; they're running at the same time. The result of <code><var>a</var>+<var>b</var></code>
+is determined by which of <var>a</var> or <var>b</var> terminates first, and this is not affected by which order they appear on either
+side of the <code>+</code> operator.  (In fact, that was why I introduced the "lexical order" tie-breaker,
+lest a dependency on this were accidentally introduced.)</p>
+
+<p>There is a neutral element for parallel composition.  Indeed, <code>BOTTOM</code> is this neutral element.
+Any program <var>a</var> that terminates will by definition terminate before <code>BOTTOM</code>,
+therefore <code><var>a</var>+BOTTOM</code> &equiv; <code>BOTTOM+<var>a</var></code> &equiv; <code><var>a</var></code>.</p>
+
+<p>Parallel composition is idempotent.  Intuitively, executing two copies of the same program in parallel will have the same result as
+executing only one copy would.  Since they both have the same input set and they both
+compute the same thing, it doesn't matter which one terminates first (and in our definition, this is undefined.)</p>
+
+<p>Sequential composition is associative.  The result of <code><var>a</var>*<var>b</var>*<var>c</var></code>
+does not differ if one first composes <var>a</var> and <var>b</var> to obtain a new program, say <var>d</var>, then composes <var>d</var> and <var>c</var>,
+or if one first composes <var>b</var> and <var>c</var> to get <var>e</var>, then composes <var>a</var> and <var>e</var>.
+An analogy can be drawn in a "block-structured" language
+like Pascal: the program <code>BEGIN A; B END; C</code> is semantically identical to <code>A; BEGIN B; C END</code>.
+
+(Note that we are talking about <em>composition</em> here, not execution.  When we put together programs to form a new program,
+it doesn't matter what order we put them together in, we get the same new program.  If we were to <em>execute</em> those component programs
+in a different order, that would be a different story: execution is indeed non-associative.)</p>
+
+<p>There is a neutral element for sequential composition.  Indeed, <code>SKIP</code> is this neutral element.
+Say some program <var>a</var> takes input set <var>S</var> and generates output set <var>T</var>.
+Then the programs <code><var>a</var>*SKIP</code> and <code>SKIP*<var>a</var></code> will also, fairly obviously, produce <var>T</var> when given <var>S</var>.</p>
+
+<p>Sequential composition left-distributes over parallel composition.  This is similar to the argument that parallel composition is
+idempotent.  If you have a program <var>a</var>
+that runs before two programs in parallel <code><var>b</var>+<var>c</var></code>, it doesn't matter if one copy of  <var>a</var> runs
+sequentially before both <var>b</var> and <var>c</var>, or if two copies of <var>a</var> run in parallel, one sequentially before <var>b</var> and one sequentially before <var>c</var>.
+In both cases it's as if one copy of <var>a</var> ran, and in both cases both <var>b</var> and <var>c</var> get the same input set.</p>
+
+<p>Sequential composition right-distributes over parallel composition.  Consider <code><var>a</var>+<var>b</var></code>.  On some input <var>S</var>,
+<var>a</var> will take <var>x</var> cycles and
+<var>b</var> will take <var>y</var> cycles, and the output set <var>T</var> will from be whichever of these numbers of cycles is smaller.
+So if there was a subsequent program <var>c</var>, it would take <var>T</var> as its input set, and it itself would take <var>z</var> cycles.
+Now suppose we sequentially compose <var>c</var> onto each of these subprograms:
+<code><var>a</var>*<var>c</var></code> will take <var>x</var> + <var>z</var> cycles, and
+<code><var>b</var>*<var>c</var></code> will take <var>y</var> + <var>z</var> cycles.
+Because addition is monotonic &mdash; if x &gt; y then x + z &gt; y + z &mdash; whichever branch was the "winner" of <code><var>a</var>+<var>b</var></code>,
+the same branch will be the winner of <code>(<var>a</var>*<var>c</var>)+(<var>b</var>*<var>c</var>)</code>.
+Also, in this branch, the input set to <var>c</var> will still be <var>T</var>, the output set of the winning branch of <code><var>a</var>+<var>b</var></code>.
+Thus the final result will be the same.  (See below for much more on this.)</p>
+
+<p>The neutral element for parallel composition is an annihilator for sequential composition.  Indeed, if we
+run <code><var>a</var>*BOTTOM</code>, or <code>BOTTOM*<var>a</var></code>, neither of those terminate, so we get the same result as running just <code>BOTTOM</code>.</p>
+
+<h2>Notes</h2>
+
+<h3>On Rings</h3>
+
+<p>As I mentioned, the original intent was for Cabra programs to form a ring under sequential and parallel composition.
+In a ring, the multiplicative operation need not have an inverse, and because of this, 
+I thought that designing Cabra, in comparison to designing Burro, would be easy.
+Here, we don't need to devise something that "undoes" concatenation (sequential composition) of two programs, and
+specifically, we don't have to worry if either program fails to terminate; the concatenated program simply
+fails to terminate too.  And parallel composition is "naturally" commutative, or so I thought.</p>
+
+<p>But, it turned out not to be a cakewalk.</P
+
+<p>For Cabra programs to form a full-fledged ring, every program would need to have a unique additive inverse.
+That is, for every program <var>a</var>, there would need to be another program <var>b</var>,
+where <code><var>a</var>+<var>b</var></code> &equiv; <code>BOTTOM</code>.
+But there can be no such program, as Cabra has been defined: if <var>a</var> terminates, then there's nothing <var>b</var> can do to
+stop <var>a</var> from terminating.</p>
+
+<p>So Cabra programs do not form a ring.  Further, it's unclear what would have to change to allow this.
+A simple instruction <code>HANGOTHERS</code> could be defined as sort of throwing a monkey wrench into every other
+currently executing program: <code><var>a</var>+HANGOTHERS</code> &equiv; <code>HANGOTHERS+<var>a</var></code> &equiv; <code>BOTTOM</code>.
+But every element is supposed to have a <em>unique</em> additive inverse, and this doesn't do that, because <code>HANGOTHERS</code>
+causes every other program to hang.</p>
+
+<p>The only thing I can think of that even might work is to require programs participating in
+<code><var>a</var>+<var>b</var></code> to perform some kind of synchronization.
+Then for every program, find another program that "thwarts" that synchronization: arranges
+things so that the other program waits forever for a lock that will never be released, or a
+message that will never come.</p>
+
+<h3>Semantics of <code>+</code></h3>
+
+<p>The semantics Cabra ended up having for parallel composition are not those which I originally envisioned.
+I was certainly hoping for something more interesting than a deterministic race condition.  However, if one chooses
+parallel semantics that are perhaps more commonplace, definate problems arise, whether in a ring or a semiring.</p>
+
+<p>Take, for instance, a semantics where the output set of <code><var>a</var>+<var>b</var></code> is
+the union of the output sets of <var>a</var> and <var>b</var> individually.  This coincides with a fairly intuitive
+notion of parallel processing where we fork different processes to compute different parts of a larger computation,
+then when they are all finished, we merge their results back together.</p>
+
+<p>But if we try this for Cabra, we have a problem:
+while sequential composition happily left-distributes over parallel composition, it fails to right-distribute over it,
+as the following counterexample indicates.  The Cabra program</p>
+
+<blockquote><code>(SET 1 + SET 2) * IFSET 1 THEN (IFSET 2 THEN SET 3 ELSE SKIP) ELSE SKIP</code></blockquote>
+
+<p>evaluates to {1, 2, 3} on a null input set, because <code>(SET 1 + SET 2)</code> evaluates to {1, 2}, and
+the remainder of the program tests for the presence of both 1 and 2 and, finding them, puts 3 in the output as well.
+However, the Cabra program that would be gotten by right-distributing the
+sequential composition in the above</p>
+
+<blockquote><code>(SET 1 * IFSET 1 THEN (IFSET 2 THEN SET 3 ELSE SKIP) ELSE SKIP) +<br>
+                  (SET 2 * IFSET 1 THEN (IFSET 2 THEN SET 3 ELSE SKIP) ELSE SKIP)</code></blockquote>
+
+<p>evaluates to {1, 2}, because the tests for both 1 and 2 in each of the parallel programs fail, because each of those
+programs only has one of the two values, not both.  So 3 is never included.</p>
+
+<p>Or, we could take a semantics where the output set of <code><var>a</var>+<var>b</var></code> is
+the <em>intersection</em> of the output sets of <var>a</var> and <var>b</var> individually.  While less
+useful-seeming than union, perhaps, this still suggests a known parallel processing technique, namely, running the
+same program (or different versions of the same program) on multiple processors to
+ensure correctness of the processing equipment through redundancy.</p>
+
+<p>But this, too, fails to be right-distributive.  Consider</p>
+
+<blockquote><code>(SET 4 + UNSET 4) * IFSET 4 THEN (UNSET 4 * SET 6) ELSE SET 5</code></blockquote>
+
+<p>This evaluates to {5} on a null input set: 4 is not a member of the output set of the
+parallel execution, so the test fails.  But if we expand it,</p>
+
+<blockquote><code>(SET 4 * IFSET 4 THEN (UNSET 4 * SET 6) ELSE SET 5) +<br>
+                  (UNSET 4 * IFSET 4 THEN (UNSET 4 * SET 6) ELSE SET 5)</code></blockquote>
+
+<p>we get a null output set, because the output set of the first parallel program is {6}, and the output set of the second is {5}.</p>
+
+<p>Also, both of these approaches would, naturally, require both of the parallel programs to terminate before
+their results could be merged to form the combined result (whether it be union or intersection.)  This means that if either of them was <code>BOTTOM</code>,
+the result would be <code>BOTTOM</code> &mdash; which in turn suggests that <code>BOTTOM</code>
+would be an annihilator for addition as well as for multiplication, and that (at least in the union case) <code>SKIP</code>
+also serves as a neutral element for both multiplication and addition.
+This is less than swell, in terms of conforming to ring axioms, because one theorem of ring theory is that
+the multiplicative identity and the additive identity are equal iff the ring consists of <em>only one element</em>,
+which is clearly not the case here.</p>
+
+<p>(I think, also, that if you do manage to have a "ring" where 1 &equiv; 0, but where there are clearly elements that aren't
+either 0 or 1, it's that the additive operation and multiplicative operation are really the <em>same</em> operation
+under the semantic equivalence relation.  One of my very early designs for Cabra came up against this, and it's
+somewhat intuitive once you think about
+it: if two programs which <em>don't depend on each other at all</em> have some given result
+when one is executed after the other, they'll have the <em>same</em> result when
+they are executed concurrently &mdash; because they don't depend on each other at all!  Thus
+in this case <code>+</code> = <code>*</code>
+and we're really talking about something that's a monoid or group or something, <em>not</em> a ring.)</p>
+
+<p>Based on this, I will go so far as to conjecture that, in fact, <em>any</em> semantics for parallel composition
+<code><var>a</var>+<var>b</var></code> (in an otherwise Cabra-like language)
+that combines results from both <var>a</var> and <var>b</var> will not be right-distributive.
+The only reason Cabra manages to be right-distributive is because it has a semantics which does not
+combine the results, but picks one and discards the other.</p>
+
+<h3>Other Algebras</h3>
+
+<p>There are ways to address the problems of Cabra &mdash; or otherwise try to make it more interesting &mdash; 
+by formulating other algebras using other sets of axioms.</p>
+
+<p>Take, for example, Kleene algebras.
+A Kleene algebra is a dioid with an additional unary postfix operator *: <var>S</var> &rarr; <var>S</var>.
+It denotes a kind of additive closure: for any element <var>a</var>,
+<var>a</var>* &equiv; 0 + <var>a</var> + (<var>a</var> * <var>a</var>) + (<var>a</var> * <var>a</var> * <var>a</var>)
++ (<var>a</var> * <var>a</var> * <var>a</var> * <var>a</var>) + ...  Kleene algebras are used for such things
+as the theory of regular expressions, where the Kleene star indicates "zero or more occurrences."</p>
+
+<p>If we try to extend Cabra from a dioid to a Kleene algebra by adding a Kleene star, we appear to get a nonplussing
+result.  Since <code><var>a</var></code> always takes fewer cycles than <code><var>a</var>*<var>a</var></code>
+(except when <var>a</var> is <code>SKIP</code>, and in that case <code><var>a</var>*<var>a</var></code> &equiv; <code><var>a</var></code>,)
+and since any <var>a</var> takes fewer cycles than <code>BOTTOM</code>, it appears that
+<code><var>a</var>*</code> &equiv; <code><var>a</var></code> in Cabra.</p>
+
+<p>What does that get us?  I'm not sure.  I suspect nothing, unless there is some neat property of the
+ordering induced by the Kleene algebra that shows up.  But it doesn't seem worth checking, to me.</p>
+
+<p>A perhaps more obvious "surgery" to make is to drop the requirement that semirings be right-distributive (while keeping left-distributivity.)  This lets us have
+"intuitive" semantics for parallel composition.  I suppose then you get a kind of biased semiring.  But I don't know what
+can be said about biased semirings.  I've not seen them mentioned elsewhere in the literature, and I suspect they are not very interesting
+if there aren't many other examples of them, and if there are no non-trivial theorems about them.</p>
+
+<p>Also, if it were not for <code>BOTTOM</code>, every program would have a multiplicative inverse: simply find which elements
+of the set the program changes, and undo those changes: do a <code>SET</code> everywhere it did an <code>UNSET</code>,
+and vice-versa.  Then, I suppose, you get an idempotent semiring with multiplicative inverses, for whatever that's worth; again,
+I've not seen these and I don't know what can be said about them.</p>
+
+<h2>Implementation</h2>
+
+<p>There is an implementation of Cabra in Haskell, <code>cabra.hs</code>, but it's really more of a token offering than a reference implementation.
+There isn't even any parser: Cabra programs have to be given as Haskell terms, which syntactically only vaguely resemble
+Cabra programs.</p>
+
+<h2>History</h2>
+
+<p>I came up with the idea to make a language whose programs formed a ring shortly after getting Burro basically done &mdash;
+fall or winter of 2005.  I didn't develop the idea until around the spring of 2007, when it occurred to me that parallel and sequential execution
+could work for the operators.  Developing the language itself (and compromising on a dioid) occurred in late summer and fall of 2007.</p>
+
+<p>May the goat be with you!</p>
+
+<p>-Chris Pressey
+<br>November 1, 2007
+<br>Windsor, Ontario, Canada</p>
+
+</body>
+</html>
