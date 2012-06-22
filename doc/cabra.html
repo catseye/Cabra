@@ -1,5 +1,7 @@
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <title>The Cabra Programming Language</title>
 </head>
 <body>
@@ -28,7 +30,7 @@ tandem with the programs (semantics) they represent.  In short, many different p
 the same (abstract) program, so the equality operator = used in the group axioms is simply replaced
 by the equivalence operator, &equiv;.  Obviously, this technique isn't restricted to groups, and the idea can be
 extended to that of any <em>algebra over an equivalence relation</em>, and it is this notion that
-is applied in Cabra to dioids.
+is applied in Cabra to dioids.</p>
 
 <p>The original intent of Cabra was to devise a language whose programs formed a <em>ring</em>
 under parallel and sequential composition operations.  Selecting a semantics for parallel composition that
@@ -271,7 +273,7 @@ Here, we don't need to devise something that "undoes" concatenation (sequential 
 specifically, we don't have to worry if either program fails to terminate; the concatenated program simply
 fails to terminate too.  And parallel composition is "naturally" commutative, or so I thought.</p>
 
-<p>But, it turned out not to be a cakewalk.</P
+<p>But, it turned out not to be a cakewalk.</p>
 
 <p>For Cabra programs to form a full-fledged ring, every program would need to have a unique additive inverse.
 That is, for every program <var>a</var>, there would need to be another program <var>b</var>,
@@ -306,15 +308,15 @@ then when they are all finished, we merge their results back together.</p>
 while sequential composition happily left-distributes over parallel composition, it fails to right-distribute over it,
 as the following counterexample indicates.  The Cabra program</p>
 
-<blockquote><code>(SET 1 + SET 2) * IFSET 1 THEN (IFSET 2 THEN SET 3 ELSE SKIP) ELSE SKIP</code></blockquote>
+<blockquote><p><code>(SET 1 + SET 2) * IFSET 1 THEN (IFSET 2 THEN SET 3 ELSE SKIP) ELSE SKIP</code></p></blockquote>
 
 <p>evaluates to {1, 2, 3} on a null input set, because <code>(SET 1 + SET 2)</code> evaluates to {1, 2}, and
 the remainder of the program tests for the presence of both 1 and 2 and, finding them, puts 3 in the output as well.
 However, the Cabra program that would be gotten by right-distributing the
 sequential composition in the above</p>
 
-<blockquote><code>(SET 1 * IFSET 1 THEN (IFSET 2 THEN SET 3 ELSE SKIP) ELSE SKIP) +<br>
-                  (SET 2 * IFSET 1 THEN (IFSET 2 THEN SET 3 ELSE SKIP) ELSE SKIP)</code></blockquote>
+<blockquote><p><code>(SET 1 * IFSET 1 THEN (IFSET 2 THEN SET 3 ELSE SKIP) ELSE SKIP) +<br/>
+                  (SET 2 * IFSET 1 THEN (IFSET 2 THEN SET 3 ELSE SKIP) ELSE SKIP)</code></p></blockquote>
 
 <p>evaluates to {1, 2}, because the tests for both 1 and 2 in each of the parallel programs fail, because each of those
 programs only has one of the two values, not both.  So 3 is never included.</p>
@@ -327,13 +329,13 @@ ensure correctness of the processing equipment through redundancy.</p>
 
 <p>But this, too, fails to be right-distributive.  Consider</p>
 
-<blockquote><code>(SET 4 + UNSET 4) * IFSET 4 THEN (UNSET 4 * SET 6) ELSE SET 5</code></blockquote>
+<blockquote><p><code>(SET 4 + UNSET 4) * IFSET 4 THEN (UNSET 4 * SET 6) ELSE SET 5</code></p></blockquote>
 
 <p>This evaluates to {5} on a null input set: 4 is not a member of the output set of the
 parallel execution, so the test fails.  But if we expand it,</p>
 
-<blockquote><code>(SET 4 * IFSET 4 THEN (UNSET 4 * SET 6) ELSE SET 5) +<br>
-                  (UNSET 4 * IFSET 4 THEN (UNSET 4 * SET 6) ELSE SET 5)</code></blockquote>
+<blockquote><p><code>(SET 4 * IFSET 4 THEN (UNSET 4 * SET 6) ELSE SET 5) +<br/>
+                  (UNSET 4 * IFSET 4 THEN (UNSET 4 * SET 6) ELSE SET 5)</code></p></blockquote>
 
 <p>we get a null output set, because the output set of the first parallel program is {6}, and the output set of the second is {5}.</p>
 
@@ -408,8 +410,8 @@ could work for the operators.  Developing the language itself (and compromising 
 <p>May the goat be with you!</p>
 
 <p>-Chris Pressey
-<br>November 1, 2007
-<br>Windsor, Ontario, Canada</p>
+<br/>November 1, 2007
+<br/>Windsor, Ontario, Canada</p>
 
 </body>
 </html>
